@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 
 const app = express();
 
+const Thing = require('./models/Thing')
+
 mongoose.connect('mongodb+srv://LafuenteM:MotDePasseMongoDB@ocbackend.heqqnoe.mongodb.net/?retryWrites=true&w=majority',
 { useNewUrlParser: true,
     useUnifiedTopology: true })
@@ -19,32 +21,37 @@ app.use((req, res, next) => {
   });
 
 app.post('/api/stuff', (req, res, next) => {
-    console.log(req.body);
-    res.status(201).json({
-        message: 'objet crée !'
-    });
+  delete req.body._id;
+  const thing = new Thing({
+    ...req.body
+  });
+  thing.save()
+    .then(() => res.status(201).json({ message: 'Objet enregistré !'}))
+    .catch(error => res.status(400).json({ error }));
+});
+
+app.put('/api/stuff/:id', (req, res, next) => {
+    Thing.updateOne({ _id: req.params.id}, {...req.body, _id: req.params.id})
+      .then(() => res.status(200).json({message: 'Objet modifié !'}))
+      .catch(error => res.status(400).json({error}));
+});
+
+app.delete('/api/stuff/:id', (req, res, next)=> {
+    Thing.deleteOne({ _id: req.params.id})
+      .then(() => res.status(200).json({message: 'Objet supprimé !'}))
+      .catch(error => res.status(400).json({error}));
+});
+
+app.get('/api/stuff/:id', (req, res, next) => {
+    Thing.findOne({ _id: req.params.id })
+      .then(things => res.status(200).json(things))
+      .catch(error => res.status(404).json({error}));
 });
 
 app.get('/api/stuff',(req, res, next) => {
-    const stuff = [
-        {
-            _id:'objUn',
-            title:'Le premier objet !',
-            description:'La descriprion du premier objet',
-            imageUrl:'https://cdn.pixabay.com/photo/2019/06/11/18/56/camera-4267692_1280.jpg',
-            price:'4900',
-            userId:'User1'
-        },
-        {
-            _id:'objDeux',
-            title:'Le deuxième objet !',
-            description:'La descriprion du deuxième objet',
-            imageUrl:'https://cdn.pixabay.com/photo/2019/06/11/18/56/camera-4267692_1280.jpg',
-            price:'8900',
-            userId:'User1'
-        },
-    ];
-    res.status(200).json(stuff);
+    Thing.find()
+      .then(things => res.status(200).json(things))
+      .catch(error => res.status(400).json({error}));
 });
 
 module.exports = app;
